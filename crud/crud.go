@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-file-server/schemas"
+	"go-file-server/utils"
 	"io"
 	"log"
 	"os"
@@ -13,8 +14,10 @@ import (
 	"strings"
 )
 
-func ListDir(directory string) []byte {
-	files, err := os.ReadDir(directory)
+func ReadDir(path string) []byte {
+	fmt.Println(path)
+	// Get files of a directory
+	files, err := os.ReadDir(path)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -29,18 +32,15 @@ func ListDir(directory string) []byte {
 		filesArr = append(filesArr, schemas.File{Name: fileInfo.Name(), IsDir: fileInfo.IsDir(), Size: fileInfo.Size(), ModTime: fileInfo.ModTime()})
 	}
 
-	response = schemas.Response{Files: filesArr, Path: directory}
+	response = schemas.Response{Files: filesArr, Path: strings.TrimPrefix(path, utils.RootPath)}
 	responseJSON, _ := json.Marshal(response)
 	return responseJSON
 }
 
-func DownloadDirectory(URLPath string, directoryName string) *bytes.Buffer {
-	URL := strings.TrimPrefix(URLPath, "/")
-	directory := URL + "/" + directoryName
+func DownloadDirectory(path string, filename string) *bytes.Buffer {
+	filePath := path + "/" + filename
 
-	fmt.Println(directory)
-
-	file, err := os.Open(directory)
+	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,28 +56,21 @@ func DownloadDirectory(URLPath string, directoryName string) *bytes.Buffer {
 
 	if fileInfo.IsDir() {
 
-		walker := func(path string, info os.FileInfo, err error) error {
-			fmt.Printf("Crawling: %#v\n", path)
+		walker := func(subPath string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
 			if info.IsDir() {
 				return nil
 			}
-			file, err := os.Open(path)
+			file, err := os.Open(subPath)
 			if err != nil {
 				return err
 			}
 			defer file.Close()
 
-			// Ensure that `path` is not absolute; it should not start with "/".
-			// This snippet happens to work because I don't use
-			// absolute paths, but ensure your real-world code
-			// transforms path into a zip-root relative path.
-
-			name := strings.TrimPrefix(path, URL)
-			fmt.Println(name)
-			f, err := writer.Create(name)
+			zipRoot := strings.TrimPrefix(subPath, path)
+			f, err := writer.Create(zipRoot)
 			if err != nil {
 				return err
 			}
@@ -89,7 +82,7 @@ func DownloadDirectory(URLPath string, directoryName string) *bytes.Buffer {
 
 			return nil
 		}
-		err := filepath.Walk(directory, walker)
+		err := filepath.Walk(filePath, walker)
 		if err != nil {
 			panic(err)
 		}

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"go-file-server/crud"
+	"go-file-server/utils"
 	"log"
 	"net/http"
 	"os"
@@ -10,18 +11,30 @@ import (
 	"time"
 )
 
+// var rootPath := os.Args[2]
+
 func root(w http.ResponseWriter, r *http.Request) {
-	path := "." + strings.TrimSuffix(r.URL.Path, "/")
+	// path := "." + strings.TrimSuffix(r.URL.Path, "/")
+	path := strings.TrimSuffix(utils.RootPath+r.URL.Path, "/")
 
-	directoryName, download := r.URL.Query()["download"]
+	keys, download := r.URL.Query()["download"]
 	if download {
-		buf := crud.DownloadDirectory(r.URL.Path, directoryName[0])
+		filename := keys[0]
+		// buf := crud.DownloadDirectory(r.URL.Path, filename)
+		buf := crud.DownloadDirectory(path, filename)
 
-		w.Header().Set("Content-Disposition", "attachment; filename=test.zip")
+		w.Header().Set("Content-Disposition", "attachment; filename="+filename+".zip")
 		w.Header().Set("Content-Type", "application/zip")
 
-		http.ServeContent(w, r, "test.zip", time.Now(), bytes.NewReader(buf.Bytes()))
+		http.ServeContent(w, r, filename+".zip", time.Now(), bytes.NewReader(buf.Bytes()))
 	} else {
+
+		// var path string
+		// if r.URL.Path != "/" {
+		// 	path = utils.RootPath + r.URL.Path
+		// } else {
+		// 	path = utils.RootPath
+		// }
 		// When opening a file in a new tab don't try to open favicon.ico
 		if path != "./favicon.ico" {
 			file, err := os.Open(path)
@@ -36,7 +49,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 
 			if fileInfo.IsDir() {
 				w.Header().Set("Content-Type", "application/json")
-				files := crud.ListDir(path)
+				files := crud.ReadDir(path)
 				w.Write(files)
 			} else {
 				http.ServeFile(w, r, path)
@@ -48,6 +61,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// fmt.Println(os.Args[2])
 	http.HandleFunc("/", root)
 	log.Fatal(http.ListenAndServe(":2222", nil))
 }
