@@ -24,9 +24,11 @@ func root(w http.ResponseWriter, r *http.Request) {
 		buf := crud.DownloadDirectory(path, filename)
 
 		w.Header().Set("Content-Disposition", "attachment; filename="+filename+".zip")
+		// w.Header().Set("Content-Disposition", "attachment; filename=prueba")
 		w.Header().Set("Content-Type", "application/zip")
 
 		http.ServeContent(w, r, filename+".zip", time.Now(), bytes.NewReader(buf.Bytes()))
+		// http.ServeContent(w, r, "prueba", time.Now(), bytes.NewReader(buf.Bytes()))
 	} else {
 
 		// var path string
@@ -36,7 +38,8 @@ func root(w http.ResponseWriter, r *http.Request) {
 		// 	path = utils.RootPath
 		// }
 		// When opening a file in a new tab don't try to open favicon.ico
-		if path != "./favicon.ico" {
+		// if path != "/favicon.ico" {
+		if !strings.Contains(path, "favicon.ico") {
 			file, err := os.Open(path)
 			if err != nil {
 				log.Fatal(err)
@@ -54,7 +57,6 @@ func root(w http.ResponseWriter, r *http.Request) {
 			} else {
 				http.ServeFile(w, r, path)
 			}
-
 		}
 	}
 
