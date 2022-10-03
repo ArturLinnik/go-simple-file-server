@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"go-file-server/schemas"
 	"go-file-server/utils"
 	"io"
@@ -15,13 +14,14 @@ import (
 )
 
 func ReadDir(path string) []byte {
-	fmt.Println(path)
+
 	// Get files of a directory
 	files, err := os.ReadDir(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Create an array with the files of the directory
 	var response schemas.Response
 	var filesArr []schemas.File
 	for _, file := range files {
@@ -32,7 +32,8 @@ func ReadDir(path string) []byte {
 		filesArr = append(filesArr, schemas.File{Name: fileInfo.Name(), IsDir: fileInfo.IsDir(), Size: fileInfo.Size(), ModTime: fileInfo.ModTime()})
 	}
 
-	response = schemas.Response{Files: filesArr, Path: strings.TrimPrefix(path, utils.RootPath)}
+	// Convert array to JSON and return it
+	response = schemas.Response{Files: filesArr, Path: strings.TrimPrefix(path, *utils.Directory)}
 	responseJSON, _ := json.Marshal(response)
 	return responseJSON
 }
@@ -40,6 +41,7 @@ func ReadDir(path string) []byte {
 func DownloadDirectory(path string, filename string) *bytes.Buffer {
 	filePath := path + "/" + filename
 
+	// Open file
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal(err)
@@ -51,11 +53,11 @@ func DownloadDirectory(path string, filename string) *bytes.Buffer {
 		log.Fatal(err)
 	}
 
+	// Create a new buffer
 	buf := new(bytes.Buffer)
 	writer := zip.NewWriter(buf)
 
 	if fileInfo.IsDir() {
-
 		walker := func(subPath string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
@@ -63,18 +65,22 @@ func DownloadDirectory(path string, filename string) *bytes.Buffer {
 			if info.IsDir() {
 				return nil
 			}
+
+			// Open file
 			file, err := os.Open(subPath)
 			if err != nil {
 				return err
 			}
 			defer file.Close()
 
+			// Create zipped file
 			zipRoot := strings.TrimPrefix(subPath, path)
 			f, err := writer.Create(zipRoot)
 			if err != nil {
 				return err
 			}
 
+			// Copy file values into the zipped file
 			_, err = io.Copy(f, file)
 			if err != nil {
 				return err
@@ -82,13 +88,14 @@ func DownloadDirectory(path string, filename string) *bytes.Buffer {
 
 			return nil
 		}
+
+		// Repeat this process recursively
 		err := filepath.Walk(filePath, walker)
 		if err != nil {
 			panic(err)
 		}
 
 		writer.Close()
-
 		return buf
 	}
 
