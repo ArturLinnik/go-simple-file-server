@@ -29,7 +29,8 @@ func ReadDir(path string) []byte {
 		if err != nil {
 			log.Fatal(err)
 		}
-		filesArr = append(filesArr, schemas.File{Name: fileInfo.Name(), IsDir: fileInfo.IsDir(), Size: fileInfo.Size(), ModTime: fileInfo.ModTime()})
+		modTimeFormatted := fileInfo.ModTime().Format("02-01-2006 15:04:05")
+		filesArr = append(filesArr, schemas.File{Name: fileInfo.Name(), IsDir: fileInfo.IsDir(), Size: fileInfo.Size(), ModTime: modTimeFormatted})
 	}
 
 	// Convert array to JSON and return it

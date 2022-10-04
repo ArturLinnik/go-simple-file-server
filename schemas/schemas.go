@@ -1,12 +1,10 @@
 package schemas
 
-import "time"
-
 type File struct {
-	Name    string    `json:"name"`
-	IsDir   bool      `json:"is_dir"`
-	Size    int64     `json:"size"`
-	ModTime time.Time `json:"mod_time"`
+	Name    string `json:"name"`
+	IsDir   bool   `json:"is_dir"`
+	Size    int64  `json:"size"`
+	ModTime string `json:"mod_time"`
 }
 
 type Response struct {

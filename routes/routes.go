@@ -80,7 +80,8 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("MIME Header: %+v\n", handler.Header)
 
 	// Create a temporary file within our temp-images directory
-	tempFile, err := ioutil.TempFile("temp-images", "upload-*.png")
+	// tempFile, err := ioutil.TempFile("temp-images", "upload-*.png")
+	tempFile, err := ioutil.TempFile("./", "upload-*.png")
 	if err != nil {
 		log.Println(err)
 	}
