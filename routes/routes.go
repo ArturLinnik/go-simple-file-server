@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"go-file-server/crud"
 	"go-file-server/utils"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -62,12 +62,11 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func postHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("File Upload Endpoint Hit")
-
 	// 10 << 20 = 10 MiB
 	r.ParseMultipartForm(32 << 20)
 
-	file, handler, err := r.FormFile("uploadF")
+	// Get file from form body
+	file, handler, err := r.FormFile("upload-file")
 	if err != nil {
 		log.Println("Error Retrieving the File")
 		log.Println(err)
@@ -75,24 +74,22 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	log.Printf("Uploaded File: %+v\n", handler.Filename)
-	log.Printf("File Size: %+v\n", handler.Size)
-	log.Printf("MIME Header: %+v\n", handler.Header)
+	// Get path from form body
+	path := r.FormValue("path")
 
-	// Create a temporary file within our temp-images directory
-	// tempFile, err := ioutil.TempFile("temp-images", "upload-*.png")
-	tempFile, err := ioutil.TempFile("./", "upload-*.png")
+	// Create file
+	dst, err := os.Create("./" + path + "/" + handler.Filename)
+	defer dst.Close()
 	if err != nil {
-		log.Println(err)
-	}
-	defer tempFile.Close()
-
-	fileBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	// Write this byte array to our temporary file
-	tempFile.Write(fileBytes)
+	// Copy the uploaded file to the created file on the filesystem
+	if _, err := io.Copy(dst, file); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	fmt.Fprintf(w, "Successfully Uploaded File\n")
 }
